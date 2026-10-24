@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foodie Challenge: The Ultimate Food Battle!</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Nunito for child-friendly, bold text -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brandYellow: '#FFD166',
+                        brandOrange: '#FF9F1C',
+                        brandRed: '#FF4757',
+                        brandGreen: '#06D6A0',
+                        brandBlue: '#118AB2',
+                        brandPurple: '#8338EC',
+                        brandBg: '#FFF9E6'
+                    },
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        nunito: ['Nunito', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #FFF9E6;
+            background-image: radial-gradient(#FFD166 1.5px, transparent 1.5px);
+            background-size: 24px 24px;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .heading-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+        .btn-bounce {
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+        .btn-bounce:hover {
+            transform: translateY(-3px) scale(1.02);
+        }
+        .btn-bounce:active {
+            transform: translateY(1px) scale(0.98);
+        }
+        .speech-bubble {
+            position: relative;
+            background: #ffffff;
+            border-radius: .4em;
+        }
+        .speech-bubble:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border: 12px solid transparent;
+            border-top-color: #ffffff;
+            border-bottom: 0;
+            margin-left: -12px;
+            margin-bottom: -12px;
+        }
+        .animate-pop {
+            animation: pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @keyframes pop {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .wiggle {
+            animation: wiggle 2s infinite ease-in-out;
+        }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(-3deg); }
+            50% { transform: rotate(3deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between p-2 sm:p-4">
+
+    <!-- Top Navigation Header -->
+    <header class="max-w-5xl mx-auto w-full bg-white rounded-2xl p-3 sm:p-4 shadow-lg border-4 border-yellow-400 flex flex-wrap justify-between items-center gap-2 mb-4">
+        <div class="flex items-center gap-2 cursor-pointer" onclick="goHome()">
+            <span class="text-3xl sm:text-4xl wiggle">🍔</span>
+            <div>
+                <h1 class="heading-font text-lg sm:text-2xl font-bold text-red-500 leading-tight">Foodie Challenge!</h1>
+                <p class="text-xs sm:text-sm font-bold text-yellow-600">Primary 4 ESL English</p>
+            </div>
+        </div>
+
+        <!-- Score & Sound Controls -->
+        <div class="flex items-center gap-3">
+            <div class="bg-amber-100 border-2 border-amber-300 rounded-xl px-3 py-1 flex items-center gap-2">
+                <i class="fa-solid fa-star text-yellow-500 text-xl"></i>
+                <span id="score-display" class="heading-font text-xl sm:text-2xl font-bold text-amber-700">0</span>
+                <span class="text-xs text-amber-600 font-extrabold">PTS</span>
+            </div>
+
+            <button id="sound-btn" onclick="toggleSound()" class="w-10 h-10 bg-slate-100 border-2 border-slate-300 rounded-xl flex items-center justify-center text-slate-600 hover:bg-slate-200">
+                <i id="sound-icon" class="fa-solid fa-volume-high"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Dynamic Content Container -->
+    <main id="app-container" class="max-w-5xl mx-auto w-full flex-grow flex flex-col items-center justify-center">
+        <!-- Dynamic Screen Content Injected via JS -->
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-4 text-center text-xs font-bold text-slate-400 py-2">
+        Foodie Challenge: The Ultimate Food Battle! • Primary 4 English Grammar Practice
+    </footer>
+
+    <!-- Audio Synthesizer (Web Audio API) Script -->
+    <script>
+        // Web Audio API context for zero-external-dependency sound FX
+        let audioCtx = null;
+        let soundEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (soundEnabled) {
+                icon.className = 'fa-solid fa-volume-high';
+                playSound('click');
+            } else {
+                icon.className = 'fa-solid fa-volume-xmark';
+            }
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            initAudio();
+            if (!audioCtx) return;
+
+            const now = audioCtx.currentTime;
+
+            if (type === 'click') {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(200, now + 0.08);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.08);
+            } else if (type === 'correct') {
+                // Happy arpeggio
+                const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.08);
+                    gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.08 + 0.15);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.15);
+                });
+            } else if (type === 'wrong') {
+                // Low buzz
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(110, now + 0.25);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now);
+                osc.stop(now + 0.25);
+            } else if (type === 'fanfare') {
+                // Level Win flourish
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((freq, idx) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.12);
+                    gain.gain.setValueAtTime(0.3, now + idx * 0.12);
+                    gain.gain.linearRampToValueAtTime(0.01, now + idx * 0.12 + 0.3);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start(now + idx * 0.12);
+                    osc.stop(now + idx * 0.12 + 0.3);
+                });
+            }
+        }
+    </script>
+
+    <!-- Game Logic & Data Script -->
+    <script>
+        // Game State Variables
+        let totalScore = 0;
+        let currentLevel = 1;
+        let currentQuestionIdx = 0;
+        let maxUnlockedLevel = 1;
+        let vocabCardIdx = 0;
+
+        // Level Question Data
+        const level1Data = [
+            {
+                type: 'mc',
+                question: 'Which food is expensive?',
+                options: [
+                    { text: 'A. Sandwich ($10)', icon: '🥪', tag: '$10', correct: false },
+                    { text: 'B. Fancy Pizza ($100)', icon: '🍕', tag: '$100', correct: true },
+                    { text: 'C. Apple ($5)', icon: '🍎', tag: '$5', correct: false }
+                ],
+                hint: 'Remember: Expensive means costing a LOT of money!'
+            },
+            {
+                type: 'mc',
+                question: 'Which food stall is popular?',
+                options: [
+                    { text: 'A. Burger Stall (90 customers)', icon: '🍔', tag: '👥 90 Likes', correct: true },
+                    { text: 'B. Cake Shop (10 customers)', icon: '🍰', tag: '👥 10 Likes', correct: false },
+                    { text: 'C. Salad Bar (5 customers)', icon: '🥗', tag: '👥 5 Likes', correct: false }
+                ],
+                hint: 'Remember: Popular means liked by MANY people!'
+            },
+            {
+                type: 'mc',
+                question: 'Which word means "very tasty"?',
+                options: [
+                    { text: 'A. Popular', icon: '👥', tag: 'Many people', correct: false },
+                    { text: 'B. Delicious', icon: '😋', tag: 'Very tasty', correct: true },
+                    { text: 'C. Expensive', icon: '💵', tag: 'Costs a lot', correct: false }
+                ],
+                hint: 'Think about yummy food that tastes great!'
+            },
+            {
+                type: 'mc',
+                question: 'Which food is the LEAST expensive (cheapest)?',
+                options: [
+                    { text: 'A. Sushi Boat ($120)', icon: '🍱', tag: '$120', correct: false },
+                    { text: 'B. Steak ($150)', icon: '🥩', tag: '$150', correct: false },
+                    { text: 'C. Ice Cream Cone ($5)', icon: '🍦', tag: '$5', correct: true }
+                ],
+                hint: 'Look for the smallest price tag!'
+            },
+            {
+                type: 'mc',
+                question: 'What does "popular" mean?',
+                options: [
+                    { text: 'A. Liked by many people', icon: '❤️', tag: 'Popular', correct: true },
+                    { text: 'B. Costing a lot of money', icon: '💰', tag: 'Expensive', correct: false },
+                    { text: 'C. Very tasty to eat', icon: '🍕', tag: 'Delicious', correct: false }
+                ],
+                hint: 'Think about a place with a long queue of customers!'
+            },
+            {
+                type: 'speech',
+                character: '🐼',
+                speech: 'Mmm! This cake tastes so good! It is so ______!',
+                options: [
+                    { text: 'delicious', correct: true },
+                    { text: 'expensive', correct: false },
+                    { text: 'popular', correct: false }
+                ],
+                hint: 'Which word describes food that tastes amazing?'
+            }
+        ];
+
+        const level2Data = [
+            {
+                type: 'compare2',
+                itemA: { name: 'Pizza A', icon: '🍕', stat: '⭐⭐⭐⭐⭐ (5 stars)' },
+                itemB: { name: 'Pizza B', icon: '🍕', stat: '⭐⭐⭐ (3 stars)' },
+                sentence: 'Pizza A is ________ than Pizza B.',
+                options: [
+                    { text: 'deliciousest', correct: false },
+                    { text: 'more delicious', correct: true },
+                    { text: 'most delicious', correct: false }
+                ],
+                hint: 'When comparing 2 things, use: more + adjective + than'
+            },
+            {
+                type: 'compare2',
+                itemA: { name: 'Burger A', icon: '🍔', stat: '$80' },
+                itemB: { name: 'Burger B', icon: '🍔', stat: '$30' },
+                sentence: 'Burger A is ________ than Burger B.',
+                options: [
+                    { text: 'more expensive', correct: true },
+                    { text: 'expensiver', correct: false },
+                    { text: 'the most expensive', correct: false }
+                ],
+                hint: 'When comparing 2 prices, use: more expensive than'
+            },
+            {
+                type: 'compare2',
+                itemA: { name: 'Sushi A', icon: '🍣', stat: '👥 90 votes' },
+                itemB: { name: 'Sushi B', icon: '🍣', stat: '👥 40 votes' },
+                sentence: 'Sushi A is ________ than Sushi B.',
+                options: [
+                    { text: 'popularer', correct: false },
+                    { text: 'the most popular', correct: false },
+                    { text: 'more popular', correct: true }
+                ],
+                hint: 'Sushi A has 90 votes and Sushi B has 40 votes.'
+            },
+            {
+                type: 'compare2',
+                itemA: { name: 'Ramen Shop A', icon: '🍜', stat: '⭐⭐⭐⭐ (4 stars)' },
+                itemB: { name: 'Ramen Shop B', icon: '🍜', stat: '⭐⭐ (2 stars)' },
+                sentence: 'Ramen Shop A is ________ than Ramen Shop B.',
+                options: [
+                    { text: 'more delicious', correct: true },
+                    { text: 'deliciouser', correct: false },
+                    { text: 'the most delicious', correct: false }
+                ],
+                hint: 'Compare 4 stars with 2 stars!'
+            },
+            {
+                type: 'compare2',
+                itemA: { name: 'Cake A', icon: '🍰', stat: '$100' },
+                itemB: { name: 'Cake B', icon: '🎂', stat: '$40' },
+                sentence: 'Cake A is ________ than Cake B.',
+                options: [
+                    { text: 'expensiver', correct: false },
+                    { text: 'more expensive', correct: true },
+                    { text: 'most expensive', correct: false }
+                ],
+                hint: '$100 is higher than $40!'
+            },
+            {
+                type: 'compare2',
+                itemA: { name: 'Taco Stand A', icon: '🌮', stat: '👥 120 fans' },
+                itemB: { name: 'Taco Stand B', icon: '🌮', stat: '👥 50 fans' },
+                sentence: 'Taco Stand A is ________ than Taco Stand B.',
+                options: [
+                    { text: 'popularest', correct: false },
+                    { text: 'more popular', correct: true },
+                    { text: 'the most popular', correct: false }
+                ],
+                hint: 'Two places comparing fans: use "more popular than"'
+            }
+        ];
+
+        const level3Data = [
+            {
+                type: 'compare3',
+                itemA: { name: 'Cake A', icon: '🍰', stat: '⭐ 3 stars' },
+                itemB: { name: 'Cake B', icon: '🧁', stat: '⭐⭐ 4 stars' },
+                itemC: { name: 'Cake C', icon: '🎂', stat: '⭐⭐⭐⭐⭐ 5 stars' },
+                sentence: 'Cake C is ____________.',
+                options: [
+                    { text: 'more delicious', correct: false },
+                    { text: 'the most delicious', correct: true },
+                    { text: 'deliciousest', correct: false }
+                ],
+                hint: 'Cake C has the highest stars out of 3 cakes! Use: the most ...'
+            },
+            {
+                type: 'compare3',
+                itemA: { name: 'Burger A', icon: '🍔', stat: '$30' },
+                itemB: { name: 'Burger B', icon: '🍔', stat: '$60' },
+                itemC: { name: 'Burger C', icon: '🍔', stat: '$90' },
+                sentence: 'Burger C is ____________.',
+                options: [
+                    { text: 'more expensive', correct: false },
+                    { text: 'expensivest', correct: false },
+                    { text: 'the most expensive', correct: true }
+                ],
+                hint: 'Burger C is $90 (the highest price of 3!). Don\'t forget "the"!'
+            },
+            {
+                type: 'compare3',
+                itemA: { name: 'Stall A', icon: '🍟', stat: '👥 20 votes' },
+                itemB: { name: 'Stall B', icon: '🌭', stat: '👥 60 votes' },
+                itemC: { name: 'Stall C', icon: '🍿', stat: '👥 100 votes' },
+                sentence: 'Stall C is ____________.',
+                options: [
+                    { text: 'the most popular', correct: true },
+                    { text: 'more popular', correct: false },
+                    { text: 'popularest', correct: false }
+                ],
+                hint: 'Stall C has 100 votes (most customers).'
+            },
+            {
+                type: 'compare3',
+                itemA: { name: 'Juice A', icon: '🧃', stat: '⭐⭐ 2 stars' },
+                itemB: { name: 'Juice B', icon: '🥤', stat: '⭐⭐⭐⭐ 4 stars' },
+                itemC: { name: 'Juice C', icon: '🧋', stat: '⭐⭐⭐⭐⭐ 5 stars' },
+                sentence: 'Juice C is ____________.',
+                options: [
+                    { text: 'deliciouser', correct: false },
+                    { text: 'more delicious', correct: false },
+                    { text: 'the most delicious', correct: true }
+                ],
+                hint: 'When choosing 1 out of 3 items, use "the most..."'
+            },
+            {
+                type: 'compare3',
+                itemA: { name: 'Hotel A', icon: '🏨', stat: '$200' },
+                itemB: { name: 'Hotel B', icon: '🏨', stat: '$400' },
+                itemC: { name: 'Hotel C', icon: '🏰', stat: '$800' },
+                sentence: 'Hotel C is ____________.',
+                options: [
+                    { text: 'the most expensive', correct: true },
+                    { text: 'expensivest', correct: false },
+                    { text: 'more expensive', correct: false }
+                ],
+                hint: '$800 is the highest price!'
+            },
+            {
+                type: 'compare3',
+                itemA: { name: 'Cafe A', icon: '☕', stat: '👥 30 fans' },
+                itemB: { name: 'Cafe B', icon: '☕', stat: '👥 70 fans' },
+                itemC: { name: 'Cafe C', icon: '☕', stat: '👥 150 fans' },
+                sentence: 'Cafe C is ____________.',
+                options: [
+                    { text: 'more popular', correct: false },
+                    { text: 'the most popular', correct: true },
+                    { text: 'popularer', correct: false }
+                ],
+                hint: 'Cafe C is #1 out of 3 places!'
+            }
+        ];
+
+        const level4Data = [
+            {
+                type: 'mixed',
+                count: 2,
+                itemA: { name: 'Burger A', icon: '🍔', stat: '$50' },
+                itemB: { name: 'Burger B', icon: '🍔', stat: '$80' },
+                sentence: 'Burger B is ________ than Burger A.',
+                options: [
+                    { text: 'more expensive', correct: true },
+                    { text: 'the most expensive', correct: false },
+                    { text: 'expensiver', correct: false }
+                ],
+                hint: 'We are comparing TWO burgers! Use: more ... than'
+            },
+            {
+                type: 'mixed',
+                count: 3,
+                itemA: { name: 'Shop A', icon: '🍕', stat: '👥 30 votes' },
+                itemB: { name: 'Shop B', icon: '🍕', stat: '👥 60 votes' },
+                itemC: { name: 'Shop C', icon: '🍕', stat: '👥 100 votes' },
+                sentence: 'Pizza Shop C is ____________.',
+                options: [
+                    { text: 'more popular', correct: false },
+                    { text: 'the most popular', correct: true },
+                    { text: 'popularer', correct: false }
+                ],
+                hint: 'We are looking at THREE shops! Use: the most ...'
+            },
+            {
+                type: 'mixed',
+                count: 2,
+                itemA: { name: 'Ice Cream A', icon: '🍦', stat: '⭐⭐⭐⭐ (4 stars)' },
+                itemB: { name: 'Ice Cream B', icon: '🍨', stat: '⭐⭐⭐⭐⭐ (5 stars)' },
+                sentence: 'Ice Cream B is ________ than Ice Cream A.',
+                options: [
+                    { text: 'the most delicious', correct: false },
+                    { text: 'deliciousest', correct: false },
+                    { text: 'more delicious', correct: true }
+                ],
+                hint: '2 items comparing tastes!'
+            },
+            {
+                type: 'mixed',
+                count: 3,
+                itemA: { name: 'Rest. A', icon: '🍽️', stat: '$50' },
+                itemB: { name: 'Rest. B', icon: '🍽️', stat: '$100' },
+                itemC: { name: 'Rest. C', icon: '🍽️', stat: '$150' },
+                sentence: 'Restaurant C is ____________.',
+                options: [
+                    { text: 'the most expensive', correct: true },
+                    { text: 'more expensive', correct: false },
+                    { text: 'expensiver', correct: false }
+                ],
+                hint: '3 restaurants! Restaurant C costs the most money.'
+            },
+            {
+                type: 'mixed',
+                count: 2,
+                itemA: { name: 'Sushi A', icon: '🍣', stat: '👥 80 votes' },
+                itemB: { name: 'Sushi B', icon: '🍣', stat: '👥 50 votes' },
+                sentence: 'Sushi A is ________ than Sushi B.',
+                options: [
+                    { text: 'popularer', correct: false },
+                    { text: 'more popular', correct: true },
+                    { text: 'the most popular', correct: false }
+                ],
+                hint: 'Comparing 2 items with "than"!'
+            },
+            {
+                type: 'mixed',
+                count: 3,
+                itemA: { name: 'Dessert A', icon: '🥮', stat: '⭐ 2 stars' },
+                itemB: { name: 'Dessert B', icon: '🍩', stat: '⭐⭐⭐⭐ 4 stars' },
+                itemC: { name: 'Dessert C', icon: '🍰', stat: '⭐⭐⭐⭐⭐ 5 stars' },
+                sentence: 'Dessert C is ____________.',
+                options: [
+                    { text: 'deliciousest', correct: false },
+                    { text: 'more delicious', correct: false },
+                    { text: 'the most delicious', correct: true }
+                ],
+                hint: 'Dessert C is the best of 3!'
+            }
+        ];
+
+        const encouragingMessages = [
+            "🌟 Excellent!",
+            "🎉 Well done!",
+            "😋 Yummy! Correct!",
+            "👑 You're a Food Star!",
+            "🚀 Amazing work!",
+            "👏 Super job!"
+        ];
+
+        // --- Render Functions ---
+
+        function goHome() {
+            playSound('click');
+            renderMainMenu();
+        }
+
+        function renderMainMenu() {
+            const container = document.getElementById('app-container');
+            container.innerHTML = `
+                <div class="w-full max-w-3xl bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-amber-300 text-center animate-pop">
+                    <div class="text-6xl sm:text-7xl mb-3 wiggle">🍕🍔🍰</div>
+                    <h2 class="heading-font text-2xl sm:text-4xl text-amber-500 font-extrabold mb-2">Foodie Challenge!</h2>
+                    <p class="text-slate-600 font-bold mb-6 sm:mb-8 text-base sm:text-lg">Master Comparative & Superlative Food Adjectives!</p>
+
+                    <!-- Level Selection Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                        <!-- Level 1 -->
+                        <button onclick="startLevel(1)" class="btn-bounce bg-gradient-to-r from-emerald-400 to-teal-500 text-white p-4 rounded-2xl shadow-lg border-b-4 border-teal-700 flex items-center justify-between">
+                            <div class="text-left">
+                                <span class="bg-white/30 text-xs px-2 py-1 rounded-lg font-bold uppercase">Level 1</span>
+                                <h3 class="heading-font text-lg sm:text-xl font-bold">Food Explorer</h3>
+                                <p class="text-xs text-teal-100 font-bold">Learn the Words</p>
+                            </div>
+                            <span class="text-3xl">🔍</span>
+                        </button>
+
+                        <!-- Level 2 -->
+                        <button onclick="startLevel(2)" ${maxUnlockedLevel < 2 ? 'disabled' : ''} class="btn-bounce bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg border-b-4 border-orange-700 flex items-center justify-between ${maxUnlockedLevel < 2 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <div class="text-left">
+                                <span class="bg-white/30 text-xs px-2 py-1 rounded-lg font-bold uppercase">Level 2</span>
+                                <h3 class="heading-font text-lg sm:text-xl font-bold">Food Battle</h3>
+                                <p class="text-xs text-amber-100 font-bold">more ... than</p>
+                            </div>
+                            <span class="text-3xl">${maxUnlockedLevel < 2 ? '🔒' : '⚔️'}</span>
+                        </button>
+
+                        <!-- Level 3 -->
+                        <button onclick="startLevel(3)" ${maxUnlockedLevel < 3 ? 'disabled' : ''} class="btn-bounce bg-gradient-to-r from-sky-400 to-blue-500 text-white p-4 rounded-2xl shadow-lg border-b-4 border-blue-700 flex items-center justify-between ${maxUnlockedLevel < 3 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <div class="text-left">
+                                <span class="bg-white/30 text-xs px-2 py-1 rounded-lg font-bold uppercase">Level 3</span>
+                                <h3 class="heading-font text-lg sm:text-xl font-bold">Food Champion</h3>
+                                <p class="text-xs text-blue-100 font-bold">the most ...</p>
+                            </div>
+                            <span class="text-3xl">${maxUnlockedLevel < 3 ? '🔒' : '🏆'}</span>
+                        </button>
+
+                        <!-- Level 4 -->
+                        <button onclick="startLevel(4)" ${maxUnlockedLevel < 4 ? 'disabled' : ''} class="btn-bounce bg-gradient-to-r from-purple-500 to-indigo-600 text-white p-4 rounded-2xl shadow-lg border-b-4 border-indigo-800 flex items-center justify-between ${maxUnlockedLevel < 4 ? 'opacity-50 cursor-not-allowed' : ''}">
+                            <div class="text-left">
+                                <span class="bg-white/30 text-xs px-2 py-1 rounded-lg font-bold uppercase">Level 4</span>
+                                <h3 class="heading-font text-lg sm:text-xl font-bold">Ultimate Challenge</h3>
+                                <p class="text-xs text-purple-200 font-bold">Mixed Battle!</p>
+                            </div>
+                            <span class="text-3xl">${maxUnlockedLevel < 4 ? '🔒' : '👑'}</span>
+                        </button>
+                    </div>
+
+                    <button onclick="showGrammarReview()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 border-2 border-slate-300 font-bold py-3 rounded-2xl transition">
+                        📖 Review Grammar Rules
+                    </button>
+                </div>
+            `;
+        }
+
+        function startLevel(lvl) {
+            playSound('click');
+            currentLevel = lvl;
+            currentQuestionIdx = 0;
+
+            if (lvl === 1) {
+                vocabCardIdx = 0;
+                renderVocabIntro();
+            } else if (lvl === 2) {
+                renderGrammarIntro(
+                    'Level 2: Food Battle',
+                    'Comparing 2 foods',
+                    'more + adjective + than',
+                    [
+                        'Pizza A is <b>more delicious than</b> Pizza B.',
+                        'Burger A is <b>more expensive than</b> Burger B.',
+                        'Sushi A is <b>more popular than</b> Sushi B.'
+                    ],
+                    '⚔️'
+                );
+            } else if (lvl === 3) {
+                renderGrammarIntro(
+                    'Level 3: Food Champion',
+                    'Comparing 3 foods',
+                    'the most + adjective',
+                    [
+                        'Pizza C is <b>the most delicious</b>.',
+                        'Burger C is <b>the most expensive</b>.',
+                        'Sushi C is <b>the most popular</b>.'
+                    ],
+                    '🏆'
+                );
+            } else if (lvl === 4) {
+                renderGrammarIntro(
+                    'Level 4: Ultimate Challenge',
+                    'Mixed Comparison Rules',
+                    '2 Things ➔ more...than | 3 Things ➔ the most...',
+                    [
+                        '2 foods: Burger A is <b>more expensive than</b> Burger B.',
+                        '3 foods: Burger C is <b>the most expensive</b>.'
+                    ],
+                    '👑'
+                );
+            }
+        }
+
+        // --- Level 1 Vocab Intro Cards ---
+        const vocabCards = [
+            {
+                word: 'Delicious',
+                meaning: 'Delicious means very tasty! 😋',
+                icon: '🍕',
+                imgAlt: 'Happy child enjoying pizza',
+                example: 'Mmm! This hot pizza is delicious!'
+            },
+            {
+                word: 'Expensive',
+                meaning: 'Expensive means costing a LOT of money! 💰',
+                icon: '💵',
+                priceTags: ['$10 (Cheap)', '$50 (Medium)', '$100 (Expensive!)'],
+                example: 'A $100 fancy meal is expensive.'
+            },
+            {
+                word: 'Popular',
+                meaning: 'Popular means liked by MANY people! ❤️',
+                icon: '👥',
+                queue: true,
+                example: 'A shop with 100 hungry customers is popular!'
+            }
+        ];
+
+        function speakWord(word) {
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(word);
+                utterance.lang = 'en-US';
+                utterance.rate = 0.9; // Clear, lively speed
+                utterance.pitch = 1.25; // Higher pitch for a friendly, cheerful, younger tone
+
+                // Try to find a female/cheerful voice from available browser voices
+                const voices = window.speechSynthesis.getVoices();
+                if (voices.length > 0) {
+                    const femaleVoice = voices.find(v => 
+                        v.lang.startsWith('en') && 
+                        (v.name.includes('Female') || 
+                         v.name.includes('Samantha') || 
+                         v.name.includes('Victoria') || 
+                         v.name.includes('Zira') || 
+                         v.name.includes('Karen') || 
+                         v.name.includes('Google US English') ||
+                         v.name.includes('Fiona') ||
+                         v.name.includes('Jenny'))
+                    );
+                    if (femaleVoice) {
+                        utterance.voice = femaleVoice;
+                    }
+                }
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        // Pre-load voices on load
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = function() {
+                window.speechSynthesis.getVoices();
+            };
+        }
+
+        function renderVocabIntro() {
+            const card = vocabCards[vocabCardIdx];
+            const container = document.getElementById('app-container');
+
+            let extraVisual = '';
+            if (card.word === 'Delicious') {
+                extraVisual = `
+                    <div class="bg-amber-50 rounded-2xl p-4 my-4 flex items-center justify-center gap-4 border-2 border-amber-200">
+                        <span class="text-6xl">😋</span>
+                        <div class="text-left">
+                            <span class="bg-yellow-400 text-slate-900 font-extrabold text-xs px-2 py-1 rounded">Very Tasty!</span>
+                            <p class="font-bold text-slate-700 text-base mt-1">"Yummy! I love this pizza!"</p>
+                        </div>
+                    </div>
+                `;
+            } else if (card.word === 'Expensive') {
+                extraVisual = `
+                    <div class="grid grid-cols-3 gap-2 my-4">
+                        <div class="bg-slate-100 p-2 rounded-xl border border-slate-300">
+                            <span class="text-3xl">🥪</span>
+                            <div class="font-black text-emerald-600 text-sm">$10</div>
+                        </div>
+                        <div class="bg-slate-100 p-2 rounded-xl border border-slate-300">
+                            <span class="text-3xl">🍱</span>
+                            <div class="font-black text-amber-600 text-sm">$50</div>
+                        </div>
+                        <div class="bg-red-100 p-2 rounded-xl border-2 border-red-400">
+                            <span class="text-3xl">🥩</span>
+                            <div class="font-black text-red-600 text-sm">$100 🔥</div>
+                        </div>
+                    </div>
+                `;
+            } else if (card.word === 'Popular') {
+                extraVisual = `
+                    <div class="grid grid-cols-2 gap-3 my-4">
+                        <div class="bg-slate-100 p-2 rounded-xl border border-slate-200 text-center">
+                            <span class="text-2xl">🏬 Shop A</span>
+                            <p class="text-xs font-bold text-slate-500">1 Customer 👤</p>
+                        </div>
+                        <div class="bg-emerald-100 p-2 rounded-xl border-2 border-emerald-400 text-center">
+                            <span class="text-2xl">🏪 Shop B</span>
+                            <p class="text-xs font-bold text-emerald-700">90 Customers! 👥👥👥</p>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="w-full max-w-2xl bg-white rounded-3xl p-6 shadow-xl border-4 border-emerald-300 text-center animate-pop">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="bg-emerald-100 text-emerald-700 font-bold text-xs px-3 py-1 rounded-full">Vocabulary Card ${vocabCardIdx + 1}/3</span>
+                        <span class="text-2xl">${card.icon}</span>
+                    </div>
+
+                    <div class="flex items-center justify-center gap-3 my-2">
+                        <h2 class="heading-font text-3xl font-extrabold text-emerald-600">${card.word}</h2>
+                        <button onclick="speakWord('${card.word}')" class="btn-bounce bg-emerald-100 hover:bg-emerald-200 text-emerald-700 p-2.5 rounded-full border-2 border-emerald-300 flex items-center justify-center shadow-sm" title="Listen to pronunciation">
+                            <i class="fa-solid fa-volume-high text-xl"></i>
+                        </button>
+                    </div>
+                    <p class="text-base font-bold text-slate-600">${card.meaning}</p>
+
+                    ${extraVisual}
+
+                    <div class="bg-yellow-100 text-yellow-800 p-3 rounded-xl font-bold mb-6 flex items-center justify-between gap-2">
+                        <p class="text-xs sm:text-sm text-left">💡 Example: "${card.example}"</p>
+                        <button onclick="speakWord('${card.example.replace(/'/g, "\\'")}')" class="bg-yellow-200 hover:bg-yellow-300 text-yellow-900 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 shrink-0">
+                            <i class="fa-solid fa-volume-high"></i> Read
+                        </button>
+                    </div>
+
+                    <button onclick="nextVocabCard()" class="btn-bounce w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-3 sm:py-4 rounded-2xl shadow-lg border-b-4 border-emerald-700 text-lg">
+                        ${vocabCardIdx < 2 ? 'Next Word ➔' : 'Start Questions! 🚀'}
+                    </button>
+                </div>
+            `;
+        }
+
+        function nextVocabCard() {
+            playSound('click');
+            vocabCardIdx++;
+            if (vocabCardIdx < 3) {
+                renderVocabIntro();
+            } else {
+                renderQuestion();
+            }
+        }
+
+        // --- Grammar Rule Intro Screen ---
+        function renderGrammarIntro(title, subtitle, ruleText, examples, icon) {
+            const container = document.getElementById('app-container');
+            container.innerHTML = `
+                <div class="w-full max-w-2xl bg-white rounded-3xl p-6 shadow-xl border-4 border-amber-300 text-center animate-pop">
+                    <div class="text-5xl mb-2">${icon}</div>
+                    <h2 class="heading-font text-2xl sm:text-3xl font-extrabold text-amber-500">${title}</h2>
+                    <p class="text-slate-500 font-bold mb-4">${subtitle}</p>
+
+                    <div class="bg-amber-100 border-2 border-amber-400 p-4 rounded-2xl mb-4">
+                        <span class="text-xs uppercase font-extrabold text-amber-700 block mb-1">Grammar Rule</span>
+                        <div class="heading-font text-xl sm:text-2xl text-red-500 font-black">${ruleText}</div>
+                    </div>
+
+                    <div class="text-left bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6">
+                        <h4 class="font-bold text-xs text-slate-400 uppercase mb-2">Examples:</h4>
+                        <ul class="list-disc list-inside text-sm sm:text-base text-slate-700 space-y-2 font-bold">
+                            ${examples.map(ex => `<li>${ex}</li>`).join('')}
+                        </ul>
+                    </div>
+
+                    <button onclick="renderQuestion()" class="btn-bounce w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3 sm:py-4 rounded-2xl shadow-lg border-b-4 border-amber-700 text-lg">
+                        Ready to Play! 🚀
+                    </button>
+                </div>
+            `;
+        }
+
+        // --- Main Question Renderer ---
+        function getCurrentLevelQuestions() {
+            if (currentLevel === 1) return level1Data;
+            if (currentLevel === 2) return level2Data;
+            if (currentLevel === 3) return level3Data;
+            return level4Data;
+        }
+
+        function renderQuestion() {
+            const questions = getCurrentLevelQuestions();
+            const q = questions[currentQuestionIdx];
+            const container = document.getElementById('app-container');
+
+            // Header progress bar
+            const progressPct = ((currentQuestionIdx + 1) / questions.length) * 100;
+
+            let centerVisualHTML = '';
+
+            // Visual Rendering depending on type
+            if (q.type === 'mc') {
+                centerVisualHTML = `
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 my-4">
+                        ${q.options.map((opt, i) => `
+                            <div class="bg-slate-50 border-2 border-slate-200 p-3 rounded-2xl text-center">
+                                <div class="text-4xl mb-1">${opt.icon || '🥪'}</div>
+                                <div class="font-bold text-xs text-slate-600 mb-1">${opt.text}</div>
+                                <span class="bg-amber-200 text-amber-800 text-xs font-black px-2 py-0.5 rounded-full">${opt.tag}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } else if (q.type === 'speech') {
+                centerVisualHTML = `
+                    <div class="my-4 flex flex-col items-center">
+                        <div class="speech-bubble p-4 text-center border-2 border-slate-300 shadow-sm max-w-md w-full mb-3">
+                            <p class="font-bold text-slate-800 text-lg">"${q.speech}"</p>
+                        </div>
+                        <div class="text-6xl">${q.character}</div>
+                    </div>
+                `;
+            } else if (q.type === 'compare2' || (q.type === 'mixed' && q.count === 2)) {
+                centerVisualHTML = `
+                    <div class="grid grid-cols-2 gap-4 my-4">
+                        <div class="bg-amber-50 border-2 border-amber-300 p-3 sm:p-4 rounded-2xl text-center shadow-sm">
+                            <div class="text-4xl sm:text-5xl mb-1">${q.itemA.icon}</div>
+                            <h4 class="font-black text-slate-800 text-sm sm:text-base">${q.itemA.name}</h4>
+                            <div class="mt-2 inline-block bg-white border border-amber-300 text-amber-700 font-extrabold text-xs sm:text-sm px-3 py-1 rounded-full">${q.itemA.stat}</div>
+                        </div>
+
+                        <div class="bg-sky-50 border-2 border-sky-300 p-3 sm:p-4 rounded-2xl text-center shadow-sm">
+                            <div class="text-4xl sm:text-5xl mb-1">${q.itemB.icon}</div>
+                            <h4 class="font-black text-slate-800 text-sm sm:text-base">${q.itemB.name}</h4>
+                            <div class="mt-2 inline-block bg-white border border-sky-300 text-sky-700 font-extrabold text-xs sm:text-sm px-3 py-1 rounded-full">${q.itemB.stat}</div>
+                        </div>
+                    </div>
+                `;
+            } else if (q.type === 'compare3' || (q.type === 'mixed' && q.count === 3)) {
+                centerVisualHTML = `
+                    <div class="grid grid-cols-3 gap-2 sm:gap-3 my-4">
+                        <div class="bg-slate-50 border-2 border-slate-200 p-2 sm:p-3 rounded-2xl text-center">
+                            <div class="text-3xl sm:text-4xl mb-1">${q.itemA.icon}</div>
+                            <h4 class="font-bold text-slate-800 text-xs sm:text-sm">${q.itemA.name}</h4>
+                            <div class="mt-1 bg-white border text-slate-700 font-extrabold text-xs px-2 py-0.5 rounded-full">${q.itemA.stat}</div>
+                        </div>
+
+                        <div class="bg-slate-50 border-2 border-slate-200 p-2 sm:p-3 rounded-2xl text-center">
+                            <div class="text-3xl sm:text-4xl mb-1">${q.itemB.icon}</div>
+                            <h4 class="font-bold text-slate-800 text-xs sm:text-sm">${q.itemB.name}</h4>
+                            <div class="mt-1 bg-white border text-slate-700 font-extrabold text-xs px-2 py-0.5 rounded-full">${q.itemB.stat}</div>
+                        </div>
+
+                        <div class="bg-amber-100 border-2 border-amber-400 p-2 sm:p-3 rounded-2xl text-center shadow-md">
+                            <div class="text-3xl sm:text-4xl mb-1">${q.itemC.icon}</div>
+                            <h4 class="font-black text-amber-900 text-xs sm:text-sm">${q.itemC.name}</h4>
+                            <div class="mt-1 bg-yellow-300 text-yellow-900 font-extrabold text-xs px-2 py-0.5 rounded-full">${q.itemC.stat}</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="w-full max-w-3xl bg-white rounded-3xl p-4 sm:p-6 shadow-xl border-4 border-amber-300 animate-pop">
+                    
+                    <!-- Question Top Bar -->
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="bg-amber-100 text-amber-800 font-extrabold text-xs sm:text-sm px-3 py-1 rounded-full">
+                            Level ${currentLevel} • Question ${currentQuestionIdx + 1}/6
+                        </span>
+                        <span class="text-xs font-bold text-slate-400">10 PTS each</span>
+                    </div>
+
+                    <!-- Progress Line -->
+                    <div class="w-full bg-slate-100 h-2.5 rounded-full mb-4 overflow-hidden border border-slate-200">
+                        <div class="bg-amber-400 h-full rounded-full transition-all duration-300" style="width: ${progressPct}%"></div>
+                    </div>
+
+                    <!-- Question Prompt -->
+                    <h3 class="heading-font text-lg sm:text-2xl font-bold text-slate-800 text-center">
+                        ${q.question || q.sentence || 'Choose the correct answer:'}
+                    </h3>
+
+                    <!-- Visual comparisons / illustrations -->
+                    ${centerVisualHTML}
+
+                    <!-- Feedback Box (Hidden initially) -->
+                    <div id="feedback-box" class="hidden mb-4 p-3 rounded-xl text-center font-bold text-sm animate-pop"></div>
+
+                    <!-- Multiple Choice Option Buttons -->
+                    <div id="options-grid" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        ${q.options.map((opt, i) => `
+                            <button onclick="checkAnswer(${i})" class="btn-bounce bg-white border-3 border-amber-200 hover:border-amber-400 text-slate-800 font-extrabold p-3 sm:py-4 rounded-2xl shadow text-base sm:text-lg flex items-center justify-center text-center">
+                                ${opt.text}
+                            </button>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Answer Checking Logic ---
+        function checkAnswer(selectedIdx) {
+            const questions = getCurrentLevelQuestions();
+            const q = questions[currentQuestionIdx];
+            const isCorrect = q.options[selectedIdx].correct;
+
+            const feedbackBox = document.getElementById('feedback-box');
+            feedbackBox.classList.remove('hidden', 'bg-emerald-100', 'text-emerald-800', 'border-emerald-400', 'bg-red-100', 'text-red-800', 'border-red-400');
+
+            if (isCorrect) {
+                playSound('correct');
+                totalScore += 10;
+                document.getElementById('score-display').innerText = totalScore;
+
+                const msg = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
+                feedbackBox.classList.add('bg-emerald-100', 'text-emerald-800', 'border-2', 'border-emerald-400');
+                feedbackBox.innerHTML = `<div>${msg}</div>`;
+
+                // Disable option buttons briefly
+                const btns = document.querySelectorAll('#options-grid button');
+                btns.forEach((btn, idx) => {
+                    btn.disabled = true;
+                    if (idx === selectedIdx) {
+                        btn.className = 'bg-emerald-500 text-white font-extrabold p-3 sm:py-4 rounded-2xl shadow-lg border-b-4 border-emerald-700 text-base sm:text-lg';
+                    } else {
+                        btn.classList.add('opacity-40');
+                    }
+                });
+
+                setTimeout(() => {
+                    currentQuestionIdx++;
+                    if (currentQuestionIdx < questions.length) {
+                        renderQuestion();
+                    } else {
+                        finishLevel();
+                    }
+                }, 1300);
+
+            } else {
+                playSound('wrong');
+                feedbackBox.classList.add('bg-red-100', 'text-red-800', 'border-2', 'border-red-400');
+                feedbackBox.innerHTML = `
+                    <div>❌ Oops! Try again!</div>
+                    <div class="text-xs font-semibold mt-1 text-red-600">💡 Hint: ${q.hint}</div>
+                `;
+            }
+        }
+
+        // --- End of Level Screen ---
+        function finishLevel() {
+            playSound('fanfare');
+
+            if (currentLevel === maxUnlockedLevel && maxUnlockedLevel < 4) {
+                maxUnlockedLevel++;
+            }
+
+            // Confetti
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 80,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            const container = document.getElementById('app-container');
+            container.innerHTML = `
+                <div class="w-full max-w-xl bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-amber-300 text-center animate-pop">
+                    <div class="text-6xl mb-2 wiggle">🌟🏆🌟</div>
+                    <h2 class="heading-font text-3xl font-extrabold text-amber-500 mb-1">Level ${currentLevel} Complete!</h2>
+                    <p class="text-slate-600 font-bold mb-6">You answered all questions correctly!</p>
+
+                    <div class="bg-amber-50 rounded-2xl p-4 border-2 border-amber-200 mb-6 flex justify-around items-center">
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 block">LEVEL SCORE</span>
+                            <span class="heading-font text-2xl font-black text-amber-600">+60 PTS</span>
+                        </div>
+                        <div class="h-8 w-0.5 bg-amber-200"></div>
+                        <div>
+                            <span class="text-xs font-bold text-slate-400 block">TOTAL SCORE</span>
+                            <span class="heading-font text-2xl font-black text-emerald-600">${totalScore} / 240</span>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-3">
+                        ${currentLevel < 4 ? `
+                            <button onclick="startLevel(${currentLevel + 1})" class="btn-bounce w-full bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold py-4 rounded-2xl shadow-lg border-b-4 border-emerald-700 text-lg">
+                                Next Level ➔
+                            </button>
+                        ` : `
+                            <button onclick="renderFinalScreen()" class="btn-bounce w-full bg-purple-600 hover:bg-purple-700 text-white font-extrabold py-4 rounded-2xl shadow-lg border-b-4 border-purple-900 text-lg">
+                                See Final Champion Results! 👑
+                            </button>
+                        `}
+                        <button onclick="goHome()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl border-2 border-slate-300">
+                            🏠 Level Menu
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Final Game Celebration Screen ---
+        function renderFinalScreen() {
+            playSound('fanfare');
+
+            if (typeof confetti === 'function') {
+                confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 } });
+            }
+
+            const container = document.getElementById('app-container');
+            container.innerHTML = `
+                <div class="w-full max-w-2xl bg-white rounded-3xl p-6 sm:p-8 shadow-xl border-4 border-yellow-400 text-center animate-pop">
+                    <div class="text-7xl mb-2 wiggle">👑🍔🏆</div>
+                    <h2 class="heading-font text-3xl sm:text-4xl text-amber-500 font-extrabold mb-1">Congratulations!</h2>
+                    <p class="text-xl font-extrabold text-slate-700 mb-4">You are the Ultimate Food Master!</p>
+
+                    <!-- Badges -->
+                    <div class="grid grid-cols-4 gap-2 mb-6">
+                        <div class="bg-emerald-50 border-2 border-emerald-300 p-2 rounded-xl">
+                            <div class="text-2xl">🔍</div>
+                            <span class="text-[10px] font-bold text-emerald-800 block">Level 1</span>
+                        </div>
+                        <div class="bg-amber-50 border-2 border-amber-300 p-2 rounded-xl">
+                            <div class="text-2xl">⚔️</div>
+                            <span class="text-[10px] font-bold text-amber-800 block">Level 2</span>
+                        </div>
+                        <div class="bg-sky-50 border-2 border-sky-300 p-2 rounded-xl">
+                            <div class="text-2xl">🏆</div>
+                            <span class="text-[10px] font-bold text-sky-800 block">Level 3</span>
+                        </div>
+                        <div class="bg-purple-50 border-2 border-purple-300 p-2 rounded-xl">
+                            <div class="text-2xl">👑</div>
+                            <span class="text-[10px] font-bold text-purple-800 block">Level 4</span>
+                        </div>
+                    </div>
+
+                    <div class="bg-yellow-100 border-2 border-yellow-400 p-4 rounded-2xl mb-6">
+                        <span class="text-xs font-bold text-yellow-800 block">FINAL TOTAL SCORE</span>
+                        <div class="heading-font text-4xl text-amber-600 font-black">${totalScore} / 240 PTS</div>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button onclick="resetGame()" class="btn-bounce flex-1 bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg border-b-4 border-amber-700">
+                            🔄 Play Again
+                        </button>
+                        <button onclick="showGrammarReview()" class="btn-bounce flex-1 bg-sky-500 hover:bg-sky-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg border-b-4 border-sky-700">
+                            📖 Review Grammar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function resetGame() {
+            totalScore = 0;
+            currentLevel = 1;
+            currentQuestionIdx = 0;
+            maxUnlockedLevel = 1;
+            document.getElementById('score-display').innerText = 0;
+            goHome();
+        }
+
+        // --- Grammar Summary Review Screen ---
+        function showGrammarReview() {
+            playSound('click');
+            const container = document.getElementById('app-container');
+            container.innerHTML = `
+                <div class="w-full max-w-3xl bg-white rounded-3xl p-6 shadow-xl border-4 border-amber-300 animate-pop">
+                    <h2 class="heading-font text-2xl sm:text-3xl font-extrabold text-amber-500 text-center mb-4">📖 Grammar Summary Review</h2>
+
+                    <!-- Rule table -->
+                    <div class="overflow-x-auto mb-6">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-amber-400 text-white text-sm sm:text-base font-extrabold">
+                                    <th class="p-3 rounded-tl-xl">Adjective</th>
+                                    <th class="p-3">Comparative (2 things)</th>
+                                    <th class="p-3 rounded-tr-xl">Superlative (3+ things)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-sm sm:text-base font-bold text-slate-700 divide-y divide-amber-100">
+                                <tr class="bg-amber-50">
+                                    <td class="p-3 text-amber-900 font-extrabold">delicious</td>
+                                    <td class="p-3 text-emerald-600">more delicious than</td>
+                                    <td class="p-3 text-purple-600">the most delicious</td>
+                                </tr>
+                                <tr class="bg-white">
+                                    <td class="p-3 text-amber-900 font-extrabold">expensive</td>
+                                    <td class="p-3 text-emerald-600">more expensive than</td>
+                                    <td class="p-3 text-purple-600">the most expensive</td>
+                                </tr>
+                                <tr class="bg-amber-50">
+                                    <td class="p-3 text-amber-900 font-extrabold">popular</td>
+                                    <td class="p-3 text-emerald-600">more popular than</td>
+                                    <td class="p-3 text-purple-600">the most popular</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Key Rules Callout -->
+                    <div class="bg-slate-50 border-2 border-slate-200 p-4 rounded-2xl mb-6 space-y-2 text-xs sm:text-sm font-bold text-slate-700">
+                        <div class="flex items-start gap-2">
+                            <span class="text-emerald-500">✅</span>
+                            <p>Use <b>"more ... than"</b> when comparing <b>TWO</b> foods or shops.</p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-purple-500">✅</span>
+                            <p>Use <b>"the most ..."</b> when choosing the highest degree among <b>THREE or more</b> things.</p>
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-red-500">❌</span>
+                            <p>Never say <i>deliciouser</i>, <i>expensiver</i>, or <i>popularest</i>!</p>
+                        </div>
+                    </div>
+
+                    <button onclick="goHome()" class="btn-bounce w-full bg-amber-500 hover:bg-amber-600 text-white font-extrabold py-3.5 rounded-2xl shadow-lg border-b-4 border-amber-700 text-lg">
+                        Back to Game Menu 🏠
+                    </button>
+                </div>
+            `;
+        }
+
+        // Initialize game on window load
+        window.onload = function() {
+            renderMainMenu();
+        };
+    </script>
+</body>
+</html>
